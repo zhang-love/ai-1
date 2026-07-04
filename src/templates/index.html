@@ -530,11 +530,9 @@
                 throw new Error(`HTTP ${response.status}`);
             }
 
-            // 隐藏打字指示器，准备显示真实内容
-            hideTypingIndicator();
-
             // 创建助手消息占位
             currentAssistantMsg = addMessage('', 'assistant');
+            let firstChunk = true;
 
             // 处理 SSE 流
             const reader = response.body.getReader();
@@ -562,6 +560,11 @@
                             }
 
                             if (data.text) {
+                                // 收到第一个数据块时隐藏 loading
+                                if (firstChunk) {
+                                    hideTypingIndicator();
+                                    firstChunk = false;
+                                }
                                 // 追加文本到当前 AI 消息
                                 currentAssistantMsg.textContent += data.text;
                                 scrollToBottom();
@@ -569,7 +572,7 @@
 
                             if (data.done) {
                                 // 完成
-                                console.log('✅ 响应完成');
+                                console.log('Response complete');
                             }
                         } catch (e) {
                             // 忽略解析错误
@@ -577,6 +580,9 @@
                     }
                 }
             }
+
+            // 确保 loading 被隐藏
+            hideTypingIndicator();
 
         } catch (error) {
             hideTypingIndicator();

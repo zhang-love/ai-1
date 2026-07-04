@@ -12,7 +12,7 @@ from dotenv import load_dotenv
 env_path = Path(__file__).parent.parent / ".env"
 if env_path.exists():
     load_dotenv(env_path)
-    print(f"✅ 已加载配置文件: {env_path}")
+    print(f"[OK] Config loaded: {env_path}")
 
 # 确保可以导入同目录的模块
 src_dir = Path(__file__).parent
@@ -22,7 +22,6 @@ if str(src_dir) not in sys.path:
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
 
 # 导入本地模块
@@ -44,9 +43,9 @@ app.add_middleware(
 # 初始化管理器
 try:
     api_client = ClaudeAPIClient()
-    print("API 客户端初始化成功")
+    print("[OK] API client initialized")
 except Exception as e:
-    print(f"API 客户端初始化失败：{e}")
+    print(f"[FAIL] API client: {e}")
     api_client = None
 
 # 知识库目录相对于项目根目录
@@ -55,8 +54,13 @@ knowledge_manager = KnowledgeManager(str(knowledge_dir))
 
 chat_manager = ChatManager()
 
-# 模板和静态文件
-templates = Jinja2Templates(directory=str(src_dir / "templates"))
+# 读取 HTML 模板
+template_path = src_dir / "templates" / "index.html"
+if template_path.exists():
+    with open(template_path, 'r', encoding='utf-8') as f:
+        HTML_TEMPLATE = f.read()
+else:
+    HTML_TEMPLATE = "<html><body><h1>Template not found</h1></body></html>"
 
 # 静态文件目录如果不存在就创建
 static_dir = src_dir / "static"
@@ -99,9 +103,9 @@ SCENARIOS = {
 
 
 @app.get("/", response_class=HTMLResponse)
-async def index(request: Request):
+async def index():
     """主页面"""
-    return templates.TemplateResponse("index.html", {"request": request})
+    return HTMLResponse(content=HTML_TEMPLATE)
 
 
 @app.post("/api/session")
@@ -301,9 +305,9 @@ async def health_check():
 
 if __name__ == "__main__":
     import uvicorn
-    print("🚀 启动客服培训机器人...")
-    print(f"📚 知识库目录：{knowledge_dir}")
-    print(f"📄 知识库文件：{knowledge_manager.get_file_list()}")
-    print("🌐 访问地址：http://localhost:8000")
-    print("✨ 支持流式响应")
+    print("Starting Customer Service Training Bot...")
+    print(f"Knowledge base dir: {knowledge_dir}")
+    print(f"Knowledge files: {knowledge_manager.get_file_list()}")
+    print("Open browser at: http://localhost:8000")
+    print("Streaming response enabled")
     uvicorn.run(app, host="0.0.0.0", port=8000)

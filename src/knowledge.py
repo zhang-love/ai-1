@@ -25,7 +25,7 @@ class KnowledgeManager:
     def load_all_knowledge(self):
         """加载目录下所有 Markdown 文件到缓存"""
         if not self.knowledge_dir.exists():
-            print(f"警告：知识库目录 {self.knowledge_dir} 不存在")
+            print(f"Warning: knowledge dir {self.knowledge_dir} not found")
             return
 
         # 扫描所有 .md 文件
@@ -34,9 +34,9 @@ class KnowledgeManager:
                 with open(md_file, "r", encoding="utf-8") as f:
                     content = f.read()
                     self.knowledge_cache[md_file.name] = content
-                    print(f"已加载知识库：{md_file.name}")
+                    print(f"Loaded knowledge: {md_file.name}")
             except Exception as e:
-                print(f"加载 {md_file.name} 失败：{e}")
+                print(f"Failed to load {md_file.name}: {e}")
 
     def get_knowledge_content(self, filename: Optional[str] = None) -> str:
         """
