@@ -1,7 +1,12 @@
 {
   "permissions": {
-    "allow": [
-      "Bash(Remove-Item \"d:\\\\ai\\\\ai-1\\\\PROJECT.md\")"
+    "autoApprove": [
+      "Bash(*)",
+      "Read(*)",
+      "Write(*)",
+      "Edit(*)",
+      "Glob(*)",
+      "Grep(*)"
     ]
   }
 }
