@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>客服培训机器人</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: #f5f5f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .chat-container {
+            width: 100%;
+            max-width: 900px;
+            height: 90vh;
+            max-height: 720px;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.12);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        /* 头部 */
+        .chat-header {
+            padding: 18px 24px;
+            background: #ffffff;
+            border-bottom: 1px solid #e8ecf1;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-shrink: 0;
+        }
+        .chat-header .avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 18px;
+        }
+        .chat-header .info h3 {
+            font-size: 16px;
+            font-weight: 600;
+            color: #1f1f1f;
+        }
+        .chat-header .info .status {
+            font-size: 13px;
+            color: #22c55e;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .chat-header .info .status::before {
+            content: "";
+            display: inline-block;
+            width: 7px;
+            height: 7px;
+            background: #22c55e;
+            border-radius: 50%;
+        }
+        .clear-btn {
+            margin-left: auto;
+            background: transparent;
+            border: none;
+            color: #9ca3af;
+            font-size: 13px;
+            cursor: pointer;
+            padding: 8px 12px;
+            border-radius: 8px;
+            transition: all 0.2s;
+        }
+        .clear-btn:hover {
+            background: #f3f4f6;
+            color: #374151;
+        }
+        /* 快捷问题 */
+        .quick-questions {
+            padding: 12px 24px 8px;
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            flex-shrink: 0;
+            background: #fafafa;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        .quick-questions button {
+            background: #f0f4ff;
+            border: 1px solid #dbe3ff;
+            border-radius: 16px;
+            padding: 6px 14px;
+            font-size: 13px;
+            color: #4f6ef7;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        .quick-questions button:hover {
+            background: #e0e8ff;
+            transform: scale(0.98);
+        }
+        /* 消息区域 */
+        .chat-messages {
+            flex: 1;
+            padding: 24px;
+            overflow-y: auto;
+            background: #ffffff;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        .welcome-message {
+            text-align: center;
+            padding: 60px 20px;
+            color: #888;
+        }
+        .welcome-message .icon {
+            font-size: 56px;
+            margin-bottom: 16px;
+        }
+        .welcome-message h3 {
+            font-size: 22px;
+            color: #1f1f1f;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+        .welcome-message p {
+            font-size: 14px;
+            color: #888;
+        }
+        .message-wrapper {
+            display: flex;
+            animation: messageIn 0.3s ease;
+        }
+        @keyframes messageIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .message-wrapper.user {
+            justify-content: flex-end;
+        }
+        .message {
+            max-width: 75%;
+            padding: 12px 16px;
+            border-radius: 16px;
+            font-size: 14px;
+            line-height: 1.6;
+            position: relative;
+            word-wrap: break-word;
+            white-space: pre-wrap;
+        }
+        .message-wrapper.user .message {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+            border-bottom-right-radius: 4px;
+        }
+        .message-wrapper.assistant .message {
+            background: #f5f5f5;
+            color: #1f1f1f;
+            border-bottom-left-radius: 4px;
+        }
+        .message-wrapper.error .message {
+            background: #fef2f2;
+            color: #dc2626;
+            border: 1px solid #fecaca;
+        }
+        /* 打字加载指示器 */
+        .typing-indicator {
+            display: none;
+            padding: 12px 16px;
+            background: #f5f5f5;
+            border-radius: 16px;
+            border-bottom-left-radius: 4px;
+            width: fit-content;
+        }
+        .typing-indicator.show {
+            display: block;
+        }
+        .typing-dots {
+            display: flex;
+            gap: 4px;
+        }
+        .typing-dots span {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            background: #9ca3af;
+            border-radius: 50%;
+            animation: typingBounce 1.4s infinite ease-in-out;
+        }
+        .typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+        .typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes typingBounce {
+            0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+            30% { transform: translateY(-8px); opacity: 1; }
+        }
+        /* 消息操作按钮 */
+        .message-actions {
+            display: flex;
+            gap: 4px;
+            margin-top: 6px;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+        .message-wrapper:hover .message-actions {
+            opacity: 1;
+        }
+        .message-action-btn {
+            background: transparent;
+            border: none;
+            color: #aaa;
+            cursor: pointer;
+            padding: 4px 6px;
+            border-radius: 4px;
+            font-size: 12px;
+            transition: all 0.15s;
+        }
+        .message-action-btn:hover {
+            background: #f0f0f0;
+            color: #666;
+        }
+        /* 输入区域 */
+        .chat-input {
+            padding: 16px 24px 24px;
+            background: #fff;
+            border-top: 1px solid #e8ecf1;
+            display: flex;
+            gap: 12px;
+            flex-shrink: 0;
+        }
+        .input-wrapper {
+            flex: 1;
+            display: flex;
+            gap: 12px;
+            align-items: flex-end;
+            background: #f5f5f5;
+            border-radius: 20px;
+            padding: 8px 12px;
+            border: 1px solid transparent;
+            transition: all 0.2s;
+        }
+        .input-wrapper:focus-within {
+            border-color: #667eea;
+            background: #fff;
+        }
+        .input-wrapper textarea {
+            flex: 1;
+            padding: 8px 8px;
+            background: transparent;
+            border: none;
+            font-size: 14px;
+            resize: none;
+            max-height: 150px;
+            font-family: inherit;
+            line-height: 1.5;
+        }
+        .input-wrapper textarea:focus {
+            outline: none;
+        }
+        .send-btn {
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.15s;
+        }
+        .send-btn:hover {
+            transform: scale(1.05);
+        }
+        .send-btn:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .input-hint {
+            font-size: 12px;
+            color: #aaa;
+            margin-top: 8px;
+            padding-left: 4px;
+        }
+        /* 滚动条美化 */
+        .chat-messages::-webkit-scrollbar {
+            width: 6px;
+        }
+        .chat-messages::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .chat-messages::-webkit-scrollbar-thumb {
+            background: #ddd;
+            border-radius: 3px;
+        }
+        .chat-messages::-webkit-scrollbar-thumb:hover {
+            background: #ccc;
+        }
+    </style>
+</head>
+<body>
+
+<div class="chat-container">
+    <!-- 头部 -->
+    <div class="chat-header">
+        <div class="avatar">🤖</div>
+        <div class="info">
+            <h3>飞智客服培训助手</h3>
+            <div class="status" id="statusText">已连接</div>
+        </div>
+        <button class="clear-btn" id="clearBtn">📋 清空对话</button>
+    </div>
+
+    <!-- 快捷问题 -->
+    <div class="quick-questions" id="quickQuestions">
+        <button data-question="手柄怎么连接手机？">🎮 手柄连接手机</button>
+        <button data-question="手柄续航时间是多久？">🔋 续航时间</button>
+        <button data-question="如何申请退换货？">📦 退换货流程</button>
+        <button data-question="手柄支持哪些游戏？">🎯 支持游戏</button>
+    </div>
+
+    <!-- 消息区 -->
+    <div class="chat-messages" id="chatMessages">
+        <div class="welcome-message" id="welcomeMessage">
+            <div class="icon">🤖</div>
+            <h3>欢迎使用客服培训机器人</h3>
+            <p>点击快捷问题或输入你想了解的内容开始</p>
+        </div>
+    </div>
+
+    <!-- 输入区 -->
+    <div class="chat-input">
+        <div class="input-wrapper">
+            <textarea id="userInput" rows="1" placeholder="输入您的问题..." onkeydown="handleKeyDown(event)" oninput="autoResize()"></textarea>
+            <button class="send-btn" id="sendBtn" onclick="sendMessage()">➤</button>
+        </div>
+    </div>
+    <div class="input-hint">Shift + Enter 换行</div>
+</div>
+
+<script>
+    // 全局状态
+    let sessionId = null;
+    let isWaiting = false;
+    let currentAssistantMsg = null;
+
+    // 页面加载时初始化
+    document.addEventListener('DOMContentLoaded', async function() {
+        await init();
+    });
+
+    // 初始化
+    async function init() {
+        try {
+            // 创建会话
+            const sessionResponse = await fetch('/api/session', { method: 'POST' });
+            const sessionData = await sessionResponse.json();
+            sessionId = sessionData.session_id;
+            console.log('✅ 会话创建成功:', sessionId);
+
+            // 检查健康状态
+            const healthResponse = await fetch('/api/health');
+            const healthData = await healthResponse.json();
+            if (healthData.api_client_initialized) {
+                document.getElementById('statusText').textContent = '已连接';
+            } else {
+                document.getElementById('statusText').textContent = '初始化中';
+            }
+        } catch (e) {
+            console.error('❌ 初始化失败:', e);
+            document.getElementById('statusText').textContent = '连接失败';
+        }
+    }
+
+    // 自动调整输入框高度
+    function autoResize() {
+        const textarea = document.getElementById('userInput');
+        textarea.style.height = 'auto';
+        textarea.style.height = Math.min(textarea.scrollHeight, 150) + 'px';
+    }
+
+    // 处理键盘输入
+    function handleKeyDown(event) {
+        if (event.key === 'Enter' && !event.shiftKey) {
+            event.preventDefault();
+            sendMessage();
+        }
+    }
+
+    // 快捷问题点击
+    document.querySelectorAll('#quickQuestions button').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.getElementById('userInput').value = btn.dataset.question;
+            sendMessage();
+        });
+    });
+
+    // 清空对话
+    document.getElementById('clearBtn').addEventListener('click', () => {
+        if (confirm('确定要清空当前对话吗？')) {
+            const messagesDiv = document.getElementById('chatMessages');
+            const welcomeMsg = document.getElementById('welcomeMessage');
+            messagesDiv.innerHTML = '';
+            messagesDiv.appendChild(welcomeMsg);
+            welcomeMsg.style.display = 'block';
+        }
+    });
+
+    // 滚动到底部
+    function scrollToBottom() {
+        const messagesDiv = document.getElementById('chatMessages');
+        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    }
+
+    // 显示打字指示器
+    function showTypingIndicator() {
+        const messagesDiv = document.getElementById('chatMessages');
+        const wrapper = document.createElement('div');
+        wrapper.className = 'message-wrapper assistant';
+        wrapper.id = 'typingWrapper';
+
+        const indicator = document.createElement('div');
+        indicator.className = 'typing-indicator show';
+        indicator.innerHTML = '<div class="typing-dots"><span></span><span></span><span></span></div>';
+
+        wrapper.appendChild(indicator);
+        messagesDiv.appendChild(wrapper);
+        scrollToBottom();
+    }
+
+    // 隐藏打字指示器
+    function hideTypingIndicator() {
+        const wrapper = document.getElementById('typingWrapper');
+        if (wrapper) {
+            wrapper.remove();
+        }
+    }
+
+    // 添加消息
+    function addMessage(content, role, isError = false) {
+        const messagesDiv = document.getElementById('chatMessages');
+        const wrapper = document.createElement('div');
+        wrapper.className = `message-wrapper ${role}`;
+        if (isError) wrapper.classList.add('error');
+
+        const messageDiv = document.createElement('div');
+        messageDiv.className = 'message';
+        messageDiv.textContent = content;
+        wrapper.appendChild(messageDiv);
+
+        // 添加操作按钮（仅对助手消息）
+        if (role === 'assistant' && !isError) {
+            const actionsDiv = document.createElement('div');
+            actionsDiv.className = 'message-actions';
+            actionsDiv.innerHTML = `<button class="message-action-btn" onclick="copyMessage(this)">📋 复制</button>`;
+            wrapper.appendChild(actionsDiv);
+        }
+
+        messagesDiv.appendChild(wrapper);
+        scrollToBottom();
+        return messageDiv;
+    }
+
+    // 复制消息
+    function copyMessage(btn) {
+        const wrapper = btn.closest('.message-wrapper');
+        const message = wrapper.querySelector('.message').textContent;
+        navigator.clipboard.writeText(message).then(() => {
+            btn.textContent = '✅ 已复制';
+            setTimeout(() => {
+                btn.textContent = '📋 复制';
+            }, 2000);
+        });
+    }
+
+    // 发送消息 - 流式版本
+    async function sendMessage() {
+        const input = document.getElementById('userInput');
+        const message = input.value.trim();
+
+        if (!message || isWaiting || !sessionId) return;
+
+        // 隐藏欢迎消息
+        document.getElementById('welcomeMessage').style.display = 'none';
+
+        // 清空输入框，调整高度
+        input.value = '';
+        input.style.height = 'auto';
+
+        // 添加用户消息
+        addMessage(message, 'user');
+
+        // 设置等待状态
+        isWaiting = true;
+        const sendBtn = document.getElementById('sendBtn');
+        sendBtn.disabled = true;
+
+        // 显示打字指示器
+        showTypingIndicator();
+
+        try {
+            // 发起流式请求
+            const response = await fetch('/api/chat/stream', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    session_id: sessionId,
+                    message: message,
+                    mode: 'free_chat'
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+
+            // 隐藏打字指示器，准备显示真实内容
+            hideTypingIndicator();
+
+            // 创建助手消息占位
+            currentAssistantMsg = addMessage('', 'assistant');
+
+            // 处理 SSE 流
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            let buffer = '';
+
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+
+                buffer += decoder.decode(value, { stream: true });
+                const lines = buffer.split('\n');
+                buffer = lines.pop() || ''; // 保留不完整的行
+
+                for (const line of lines) {
+                    if (line.startsWith('data: ')) {
+                        const dataStr = line.slice(6);
+                        if (dataStr === '[DONE]') continue;
+
+                        try {
+                            const data = JSON.parse(dataStr);
+
+                            if (data.error) {
+                                throw new Error(data.error);
+                            }
+
+                            if (data.text) {
+                                // 追加文本到当前 AI 消息
+                                currentAssistantMsg.textContent += data.text;
+                                scrollToBottom();
+                            }
+
+                            if (data.done) {
+                                // 完成
+                                console.log('✅ 响应完成');
+                            }
+                        } catch (e) {
+                            // 忽略解析错误
+                        }
+                    }
+                }
+            }
+
+        } catch (error) {
+            hideTypingIndicator();
+            console.error('❌ 发送失败:', error);
+            addMessage('❌ 请求失败：' + (error.message || '请检查后端服务是否启动'), 'assistant', true);
+        } finally {
+            isWaiting = false;
+            sendBtn.disabled = false;
+            currentAssistantMsg = null;
+            input.focus();
+        }
+    }
+</script>
+</body>
+</html>
